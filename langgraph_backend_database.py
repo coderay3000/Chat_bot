@@ -4,10 +4,10 @@ from langchain_huggingface import ChatHuggingFace,HuggingFaceEndpoint
 from langgraph.graph import StateGraph, START, END
 from typing import TypedDict, Annotated
 from langchain_core.messages import BaseMessage, HumanMessage
-from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph.message import add_messages
 from langchain_google_genai import ChatGoogleGenerativeAI
-
+import sqlite3
 
 llm_endpoint = HuggingFaceEndpoint(
     # Model 1: Llama 3.1 8B Instruct
@@ -33,8 +33,11 @@ def chat_node(state: ChatState):
     response = model.invoke(messages)
     return {"messages": [response]}
 
+
+conn = sqlite3.connect(database='chatbot.db', check_same_thread=False)
+
 # Checkpointer
-checkpointer = InMemorySaver()
+checkpointer = SqliteSaver(conn=conn)
 
 graph = StateGraph(ChatState)
 graph.add_node("chat_node", chat_node)
@@ -42,4 +45,10 @@ graph.add_edge(START, "chat_node")
 graph.add_edge("chat_node", END)
 
 chatbot = graph.compile(checkpointer=checkpointer)
+
+def get_all_threads():
+    all_threads = set()
+    for checkpoint in checkpointer.list(None):  # ye bata dega ki aapke db me kitne checkpoints stored hai ,ya particular thread me kitne checkpoints hai 
+        all_threads.add(checkpoint.config['configurable']['thread_id'])
+    return list(all_threads)
 

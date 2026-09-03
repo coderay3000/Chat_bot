@@ -16,7 +16,7 @@ for message in st.session_state['message_history']:
 
 user_input = st.chat_input('Type here...')
 
-if user_input:
+if user_input: 
     # User input state aur UI me append karein
     st.session_state['message_history'].append({'role': 'user', 'content': user_input})
     with st.chat_message('user'):
